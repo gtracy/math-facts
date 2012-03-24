@@ -1,5 +1,4 @@
-This project lets you practice basic math facts - multiplication and division - via text messages. The test comes in 
-a series of questions and results are stored for later analysis. 
+This project lets you practice basic math facts - multiplication and division - via text messages. The test comes in a series of questions and results are stored for later analysis. 
 
 The app uses Twilio for SMS and can be deployed to Google App Engine.
 
