@@ -1,5 +1,5 @@
 application: annafacts
-version: 1
+version: reporting
 runtime: python
 api_version: 1
 
@@ -8,6 +8,7 @@ derived_file_type:
 
 inbound_services:
 - xmpp_message
+- mail
 
 handlers:
 - url: .*

@@ -2,14 +2,19 @@ import os
 import logging
 import random
 import Cookie
+import datetime
 
 from google.appengine.api import memcache
 from google.appengine.api import xmpp
+from google.appengine.api import mail
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 
 from twilio import twiml
+
+import config
+
 
 #
 # (0) Callers start a test by texting 'start' to the app number
@@ -36,6 +41,37 @@ class ProblemLog(db.Model):
   
   correct = db.BooleanProperty()
 ## end 
+
+class DailyReportHandler(webapp.RequestHandler):
+    def get(self):
+      # setup the response email
+      message = mail.EmailMessage()
+      message.sender = config.EMAIL_SENDER_ADDRESS
+      message.to = config.EMAIL_REPORT_ADDRESS
+      message.subject = "Anna's math facts report"
+
+      this_morning = datetime.datetime.now() - datetime.timedelta(hours=24)
+
+      logging.debug('this morning %s' % this_morning)
+      logs = db.GqlQuery("select * from ProblemLog where date > DATETIME(:1,:2,:3,:4)", 
+        this_morning.year,this_morning.month,this_morning.day,this_morning.hour).fetch(100)
+      if logs is None:
+        message.body = "Uh-oh. Anna forgot to do her math facts today!"
+        logging.debug('sending results - missing results - to %s' % message.to)
+
+      else:
+        correct = 0
+        for log in logs:
+          logging.debug(log)
+          if log.correct:
+            correct += 1
+
+        message.body = "Sweet. Anna did her math facts today!%sHer score was %s/%s" % ("\n\n",str(correct),str(len(logs)))
+        logging.debug('sending results - to %s' % message.to)
+
+      message.send()
+      self.response.out.write('done')
+
 
 class TestHandler(webapp.RequestHandler):
     def get(self):
@@ -287,6 +323,7 @@ def main():
     logging.getLogger().setLevel(logging.DEBUG)
     application = webapp.WSGIApplication([('/sms', MainHandler),
                                           ('/_ah/xmpp/message/chat/', XmppHandler),
+                                          ('/dailyreport', DailyReportHandler),
                                           ('/test', TestHandler)
                                          ],
                                          debug=True)
